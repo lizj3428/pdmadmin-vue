@@ -29,6 +29,6 @@ export const adminApi = {
    * @param pageSize 每页条数
    */
   queryPageList: (param: any, pageNum: any, pageSize: any) => {
-    return get('/admin/list?page=' + pageNum + '&pageSize=' + pageSize, param)
+    return post('/admin/list?pageNum=' + pageNum + '&pageSize=' + pageSize, param)
   },
 }
