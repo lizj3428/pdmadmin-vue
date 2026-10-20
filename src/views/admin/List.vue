@@ -41,7 +41,7 @@
 
     <!-- 分页组件 -->
     <el-pagination @current-change="" background layout="prev, pager, next" :total="total" style="justify-content: flex-end" />
-    <Addorupdate ref="operateRef"></Addorupdate>
+    <Addorupdate @refresh="getList" ref="operateRef"></Addorupdate>
   </div>
 </template>
 
