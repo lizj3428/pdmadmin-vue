@@ -33,14 +33,14 @@
       <!-- 操作列 -->
       <el-table-column header-align="center" align="center" label="操作" width="150" >
         <template #default="scope">
-          <el-button type="primary" size="small">编辑</el-button>
+          <el-button type="primary" size="small" @click="update(scope.row)">编辑</el-button>
           <el-button type="danger" size="small">删除</el-button>
         </template>
         </el-table-column>
     </el-table>
 
     <!-- 分页组件 -->
-    <el-pagination @current-change="" background layout="prev, pager, next" :total="total" style="justify-content: flex-end" />
+    <el-pagination @current-change="handleCurrentPageChange" background layout="prev, pager, next" :total="total" style="justify-content: flex-end" />
     <Addorupdate @refresh="getList" ref="operateRef"></Addorupdate>
   </div>
 </template>
@@ -96,6 +96,10 @@ function handleCurrentPageChange(val: number) {
 
 function add() {
   operateRef.value.showModal();
+}
+
+function update(row) {
+  operateRef.value.showModal(row);
 }
 
 // 页面加载时获取数据

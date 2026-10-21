@@ -12,7 +12,7 @@
     </el-form-item>
 
     <el-form-item label="密码" prop="userpwd">
-      <el-input v-model="form.userpwd" style="width: 50%;"/>
+      <el-input v-model="form.userpwd" type="password" style="width: 50%;"/>
     </el-form-item>
 
     <el-form-item label="姓名" prop="name">
@@ -59,7 +59,12 @@ defineExpose({
 const visible = ref(false);
 const btnLoading = ref(false);
 const emit = defineEmits(['refresh'])
-function showModal() {
+function showModal(row) {
+  if(row){
+    Object.assign(form, row);
+  }else{
+    Object.assign(form, formDefault);
+  }
   visible.value = true;
 }
 //表单组件
@@ -87,13 +92,24 @@ const rules = reactive( {
   headurl: [{ required: true, message: '请输入头像地址', trigger: 'blur' }]
 })
 function onsubmit() { 
-  btnLoading.value = true;
-  formRef.value.validate().then(async () => { 
-    adminApi.add(form);
+
+  try{
+    btnLoading.value = true;
+    formRef.value.validate().then(async () => { 
+    await adminApi.add(form);
     btnLoading.value = false;
     visible.value = false;
     emit('refresh');
 })
+  }catch(e){
+    btnLoading.value = false;
+  }
+  finally{
+    btnLoading.value = false;
+  }
+
+
+ 
 
   
   console.log("form.username" + form.username)
