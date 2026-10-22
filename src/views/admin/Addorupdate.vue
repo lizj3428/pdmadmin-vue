@@ -1,14 +1,14 @@
 <template>
     <el-dialog
     v-model="visible"
-    title="新增"
+    :title="!form.id ? '新增' : '修改'"
     width="40%"
   >
 
   <el-form :rules="rules" :model="form" ref="formRef" label-width="100px">
 
     <el-form-item label="用户名" prop="username">
-      <el-input  v-model="form.username" style="width: 50%;" />
+      <el-input  v-model="form.username" :readonly="unreadonly" style="width: 50%;" />
     </el-form-item>
 
     <el-form-item label="密码" prop="userpwd">
@@ -52,18 +52,21 @@
 <script setup lang="ts"> 
 import { ref,reactive } from 'vue'
 import { adminApi } from '@/api/admin-api'
+import { ElMessage } from 'element-plus'
 //公开父主键可以调用的方法
-defineExpose({
-  showModal
-})
+defineExpose({showModal})
+
+const unreadonly = ref(false);
 const visible = ref(false);
 const btnLoading = ref(false);
 const emit = defineEmits(['refresh'])
 function showModal(row) {
   if(row){
     Object.assign(form, row);
+    unreadonly.value = true;
   }else{
     Object.assign(form, formDefault);
+    unreadonly.value = false;
   }
   visible.value = true;
 }
@@ -87,7 +90,7 @@ const rules = reactive( {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   userpwd: [{ required: true, message: '请输入密码', trigger: 'blur' }],
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  sex: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  sex: [{ required: true, message: '请选择性别', trigger: 'blur' }],
   tel: [{ required: true, message: '请输入电话', trigger: 'blur' }],
   headurl: [{ required: true, message: '请输入头像地址', trigger: 'blur' }]
 })
@@ -96,7 +99,12 @@ function onsubmit() {
   try{
     btnLoading.value = true;
     formRef.value.validate().then(async () => { 
-    await adminApi.add(form);
+      if(form.id){
+        await adminApi.update(form);
+      }else{
+        await adminApi.add(form);
+      }
+    ElMessage.success(`${!form.id ? '新增' : '修改'}成功`);
     btnLoading.value = false;
     visible.value = false;
     emit('refresh');
@@ -107,9 +115,6 @@ function onsubmit() {
   finally{
     btnLoading.value = false;
   }
-
-
- 
 
   
   console.log("form.username" + form.username)

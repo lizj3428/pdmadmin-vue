@@ -19,8 +19,8 @@ export const adminApi = {
    * 删除管理员
    * @param i 管理员ID
    */
-  delete: (i: any) => {
-    return post('/admin/del?id=' + i, {})
+  delete: (ids: any) => {
+    return post('/admin/del?ids=' + ids, {})
   },
   /**
    * 查询管理员列表（分页）
