@@ -26,6 +26,7 @@
                                 <el-input style="width: 268px;height: 40px;font-size: 16px;" placeholder="验证码"
                                    />
 
+                                <img class="captcha-img" :src="captchaImage" @click="getCaptcha" />
                              
                             </div>
 
@@ -47,8 +48,39 @@
 </template>
 
 
+
 <script lang="ts" setup>
- 
+
+import { User, Lock } from '@element-plus/icons-vue';
+// 引入必要的 Vue API 和常量配置
+import {  reactive, ref, onMounted } from 'vue';
+import { commonApi } from '@/api/common-api';
+
+//--------------------- 验证码 ---------------------------------
+const captchaImage = ref('');
+//获取验证码
+async function getCaptcha() {
+    try {
+        let captchaResult = await commonApi.getCaptcha();
+        captchaImage.value = captchaResult.data.captchaImage;
+        form.captchaId = captchaResult.data.captchaId;
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+// --------------------- 登录表单 ---------------------
+// 表单组件
+const formRef = ref();
+//表单
+let form = reactive({
+    username: undefined,
+    userpwd: undefined,
+    captchaId: undefined,
+    captchaCode: undefined,
+});
+
+onMounted(getCaptcha);
 </script>
 <style lang="less">
 @import '../styles/login.less';
