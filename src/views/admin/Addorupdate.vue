@@ -96,28 +96,30 @@ const rules = reactive( {
 })
 function onsubmit() { 
 
+formRef.value.validate().then(async () => {
   try{
     btnLoading.value = true;
-    formRef.value.validate().then(async () => { 
+     
       if(form.id){
         await adminApi.update(form);
       }else{
         await adminApi.add(form);
       }
-    ElMessage.success(`${!form.id ? '新增' : '修改'}成功`);
+    ElMessage.success(`${!form.id ? '修改' : '添加'}成功`);
     btnLoading.value = false;
     visible.value = false;
     emit('refresh');
-})
+
   }catch(e){
     btnLoading.value = false;
   }
   finally{
     btnLoading.value = false;
   }
+})
 
   
-  console.log("form.username" + form.username)
+  
 }
 
 </script>

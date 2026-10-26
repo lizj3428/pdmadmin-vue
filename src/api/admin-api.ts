@@ -31,4 +31,30 @@ export const adminApi = {
   queryPageList: (param: any, pageNum: any, pageSize: any) => {
     return post('/admin/list?pageNum=' + pageNum + '&pageSize=' + pageSize, param)
   },
+
+  /**
+   * 登录管理员
+   * 后端使用 @RequestParam 接收参数，因此以 URL 参数方式传递
+   */
+  login: (param: any) => {
+    return post(
+      '/admin/login?username=' +
+        encodeURIComponent(param.username) +
+        '&userpwd=' +
+        encodeURIComponent(param.userpwd) +
+        '&captchaId=' +
+        encodeURIComponent(param.captchaId || '') +
+        '&captchaCode=' +
+        encodeURIComponent(param.captchaCode || ''),
+      {},
+    )
+  },
+
+  /**
+   * 退出登录
+   * @param param 退出登录参数
+   */
+  logout: (param: any) => {
+    return post('/admin/logout', param)
+  },
 }
