@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAdminStore } from '@/stores/admin.ts'; 
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,5 +22,19 @@ const router = createRouter({
     },
   ],
 })
+
+
+router.beforeEach(async(to,from) => {
+  const adminStore = useAdminStore();
+  if (to.path === '/login') {
+    return true;
+  } 
+   const token = useAdminStore().getToken;
+   if  (!token){
+    return { path: '/login' }
+   }
+    
+  
+});
 
 export default router

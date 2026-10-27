@@ -6,7 +6,7 @@
       </div>
       <div class="header-rinfo">
         当前用户：
-        <span>admin</span>
+        <span>{{ admin.name }}</span>
         <span class="header-exit">
           <a @click="loginOut()">退出</a>
         </span>
@@ -15,24 +15,24 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import {adminApi} from '@/api/admin-api'
+import { adminApi } from '@/api/admin-api'
 import { clearLocalStorage } from '@/utils/utils'
+import { useAdminStore } from '@/stores/admin'
+import { storeToRefs } from 'pinia'
+const adminStore = useAdminStore()
+const { admin } = storeToRefs(adminStore)
 
-
-async function loginOut(){
-  try{
+async function loginOut() {
+  try {
     // 注意：api 里定义的方法名是 logout，不是 loginOut
     await adminApi.logout({})
   } catch (error) {
-    console.error('退出登录失败', error);
+    console.error('退出登录失败', error)
   } finally {
     // 无论后端是否成功，都清掉本地 token 并跳回登录页
     clearLocalStorage()
-    window.location.href = '/login';
+    window.location.href = '/login'
   }
 }
-
 </script>
-

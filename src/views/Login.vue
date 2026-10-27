@@ -68,6 +68,7 @@ import { commonApi } from '@/api/common-api'
 import { adminApi } from '@/api/admin-api'
 import { saveLocalStorage } from '@/utils/utils'
 import Constants from '@/utils/constants'
+import { useAdminStore } from '@/stores/admin'
 
 // 路由对象，用于登录成功后跳转页面
 const router = useRouter()
@@ -110,12 +111,12 @@ async function onSubmit() {
       btnLoading.value = true
       let result = await adminApi.login(form)
       // 登录成功，保存 token，后续请求拦截器会自动携带
-      saveLocalStorage(Constants.USER_TOKEN, result.data.token)
+      useAdminStore().setAdminInfo(result.data)
       router.push('/index')
-    } catch (e) {
-      // 请求拦截器已弹出错误提示，登录失败后刷新验证码
-      form.captchaCode = undefined
-      getCaptcha()
+    } catch (e: any) {
+      if (e.data && e.data != 200) {
+        getCaptcha()
+      }
     } finally {
       btnLoading.value = false
     }
