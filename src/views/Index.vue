@@ -27,8 +27,9 @@
 import Header from '../components/Header.vue'
 import LeftMenu from '../components/LeftMenu.vue'
 import Footer from '../components/Footer.vue'
-
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ElNotification } from 'element-plus'
+import wsManager from '@/utils/websocket'
 /**
  * 定义内容区域常量  站点内容高度
  */
@@ -48,6 +49,24 @@ function getSiteContentHeight() {
 }
 
 getSiteContentHeight()
+
+// ===== WebSocket 实时推送 =====
+// 登录后建立连接，后端用 MessagePushService 推消息时，这里会实时弹出通知
+onMounted(() => {
+  wsManager.setOnMessage((data: any) => {
+    ElNotification({
+      title: data.title || '新消息提醒',
+      message: data.content || '',
+      type: 'success',
+      duration: 4000,
+    })
+  })
+  wsManager.connect()
+})
+
+onUnmounted(() => {
+  wsManager.close()
+})
 </script>
 
 <style lang="less">
