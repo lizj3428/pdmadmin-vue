@@ -4,6 +4,8 @@ import { useAdminStore } from '@/stores/admin.ts';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // 根路径重定向到登录页，避免直接访问 localhost:5173 时白屏
+    { path: '/', redirect: '/login' },
     {
        path: '/login',
       name: 'login',
@@ -15,11 +17,15 @@ const router = createRouter({
       component: () => import('../views/Index.vue'),
       // 去掉 welcome 前面的 /
       children: [
+        // 访问 /index 时默认展示 welcome，避免内容区空白
+        { path: '', redirect: { name: 'Welcome' } },
         { path: 'welcome', name: 'Welcome', component: () => import('../views/WelcomeVue.vue') },
         { path: 'admin', name: 'Admin', component: () => import('../views/admin/List.vue') },
-      
+
       ],
     },
+    // 兜底：任何未匹配路径都回首页，避免白屏
+    { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 
