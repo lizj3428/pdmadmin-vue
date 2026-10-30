@@ -12,7 +12,8 @@
     </el-form-item>
 
     <el-form-item label="密码" prop="userpwd">
-      <el-input v-model="form.userpwd" type="password" style="width: 50%;"/>
+      <el-input v-model="form.userpwd" type="password" style="width: 50%;"
+                :placeholder="form.id ? '留空则不修改密码' : '请输入密码'"/>
     </el-form-item>
 
     <el-form-item label="姓名" prop="name">
@@ -88,7 +89,19 @@ const formDefault = {
 let form = reactive({ ...formDefault })
 const rules = reactive( {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  userpwd: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  // 密码：新增时必须填；修改时可以留空，表示不改密码。
+  // 后端不再把密码密文返回给前端，所以修改时密码框一定是空的，
+  // 如果用 required 死规则，会逼用户每次编辑都重输密码。
+  userpwd: [{
+    validator: (rule, value, callback) => {
+      if (!form.id && !value) {
+        callback(new Error('请输入密码'))
+      } else {
+        callback()
+      }
+    },
+    trigger: 'blur'
+  }],
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   sex: [{ required: true, message: '请选择性别', trigger: 'blur' }],
   tel: [{ required: true, message: '请输入电话', trigger: 'blur' }],
@@ -105,7 +118,7 @@ formRef.value.validate().then(async () => {
       }else{
         await adminApi.add(form);
       }
-    ElMessage.success(`${!form.id ? '修改' : '添加'}成功`);
+    ElMessage.success(`${form.id ? '修改' : '添加'}成功`);
     btnLoading.value = false;
     visible.value = false;
     emit('refresh');
