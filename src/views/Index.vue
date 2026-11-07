@@ -5,10 +5,16 @@
         <Header></Header>
       </el-header>
       <el-container>
-        <el-aside class="pdm-sidebar pdm-sidebar--dark">
-          <LeftMenu></LeftMenu>
+        <el-aside
+          class="pdm-sidebar pdm-sidebar--dark"
+          :class="{ 'pdm-sidebar--collapsed': collapsed }"
+        >
+          <LeftMenu :collapsed="collapsed" @toggle="toggleSidebar"></LeftMenu>
         </el-aside>
-        <el-container class="pdm-content__wrapper">
+        <el-container
+          class="pdm-content__wrapper"
+          :class="{ 'pdm-content__wrapper--collapsed': collapsed }"
+        >
           <el-main class="pdm-content" :style="siteContent.siteContentHeight">
             <el-card>
               <router-view />
@@ -30,6 +36,16 @@ import Footer from '../components/Footer.vue'
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElNotification } from 'element-plus'
 import wsManager from '@/utils/websocket'
+
+/** 侧边栏折叠状态：刷新后保留上次选择 */
+const sidebarCollapsedKey = 'pdm-admin-sidebar-collapsed'
+const collapsed = ref(localStorage.getItem(sidebarCollapsedKey) === 'true')
+
+function toggleSidebar() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem(sidebarCollapsedKey, String(collapsed.value))
+}
+
 /**
  * 定义内容区域常量  站点内容高度
  */

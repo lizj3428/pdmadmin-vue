@@ -69,6 +69,10 @@ body {
   z-index: 1000;
   width: @pdm--sidebar-width;
   overflow: hidden;
+  transition: width 0.2s ease;
+  &--collapsed {
+    width: 64px;
+  }
   &--dark,
   &--dark-popper {
     background-color: @sidebar--background-color-dark;
@@ -94,17 +98,38 @@ body {
       }
     }
   }
+  // 切换条固定在顶部，菜单区占满剩余高度并独立滚动
+  &__inner-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
   &__inner {
     position: relative;
     z-index: 1;
-    width: 250px;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
     padding-bottom: 15px;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #8a979e #001528;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background-color: #001528;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: #8a979e;
+      border-radius: 3px;
+    }
   }
   &__menu.el-menu {
-    width: @pdm--sidebar-width;
+    width: 100%;
     border-right: 0;
   }
   &__menu-icon {
@@ -130,6 +155,10 @@ body {
     width: 100%;
     margin-left: @pdm--sidebar-width;
     min-height: 100%;
+    transition: margin-left 0.2s ease;
+    &--collapsed {
+      margin-left: 64px;
+    }
   }
 }
 
