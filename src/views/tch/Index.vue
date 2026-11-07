@@ -5,10 +5,16 @@
         <Header></Header>
       </el-header>
       <el-container>
-        <el-aside class="pdm-sidebar pdm-sidebar--dark">
-          <TchMenu></TchMenu>
+        <el-aside
+          class="pdm-sidebar pdm-sidebar--dark"
+          :class="{ 'pdm-sidebar--collapsed': collapsed }"
+        >
+          <TchMenu :collapsed="collapsed" @toggle="toggleSidebar"></TchMenu>
         </el-aside>
-        <el-container class="pdm-content__wrapper">
+        <el-container
+          class="pdm-content__wrapper"
+          :class="{ 'pdm-content__wrapper--collapsed': collapsed }"
+        >
           <el-main class="pdm-content" :style="siteContent.siteContentHeight">
             <el-card>
               <router-view />
@@ -27,7 +33,16 @@
 import Header from '../../components/Header.vue'
 import TchMenu from '../../components/TchMenu.vue'
 import Footer from '../../components/Footer.vue'
-import { reactive } from 'vue'
+import { ref, reactive } from 'vue'
+
+/** 侧边栏折叠状态：刷新后保留上次选择 */
+const sidebarCollapsedKey = 'pdm-tch-sidebar-collapsed'
+const collapsed = ref(localStorage.getItem(sidebarCollapsedKey) === 'true')
+
+function toggleSidebar() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem(sidebarCollapsedKey, String(collapsed.value))
+}
 
 /**
  * 教师端布局
