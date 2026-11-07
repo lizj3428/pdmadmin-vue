@@ -27,12 +27,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { inject, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stuApi } from '@/api/stu-api'
 
 const route = useRoute()
 const router = useRouter()
+const refreshUnread = inject<() => void>('refreshUnread', () => {})
 
 const loading = ref(false)
 const news = ref<any>(null)
@@ -44,26 +45,39 @@ function formatTime(t: any) {
   return String(t).replace('T', ' ').slice(0, 16)
 }
 
-async function load() {
-  const id = route.params.id
-  if (!id) {
-    return
-  }
-  loading.value = true
-  news.value = null
-  try {
-    const res: any = await stuApi.newsDetail(id)
-    news.value = res.data
-  } catch {
-    news.value = null
-  } finally {
-    loading.value = false
-  }
-}
+watch(
+  () => route.params.id,
+  async (id, _previousId, onCleanup) => {
+    let active = true
+    onCleanup(() => {
+      active = false
+    })
 
-// 从通知点进来时路由参数会变，但组件是复用的，所以要 watch
-watch(() => route.params.id, load)
-onMounted(load)
+    news.value = null
+    if (typeof id !== 'string' || !id) {
+      loading.value = false
+      return
+    }
+
+    loading.value = true
+    try {
+      const res: any = await stuApi.newsDetail(id)
+      if (!active || !res.data) {
+        return
+      }
+      news.value = res.data
+    } catch {
+      return
+    } finally {
+      if (active) {
+        loading.value = false
+      }
+    }
+
+    await stuApi.readMessagesByNews(id).then(refreshUnread, () => {})
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped lang="less">

@@ -15,7 +15,7 @@ export const stuApi = {
     return post(url, param)
   },
 
-  /** 资讯详情，会同时把阅读量 +1 */
+  /** 资讯详情，同一学生首次阅读计数 */
   newsDetail: (id: any) => {
     return post('/stu/news/detail?id=' + id, {})
   },
@@ -38,6 +38,10 @@ export const stuApi = {
   /** 标记单条已读 */
   readMessage: (id: any) => {
     return post('/stu/message/read?id=' + id, {})
+  },
+
+  readMessagesByNews: (newsId: string) => {
+    return post('/stu/message/readByNews?newsId=' + encodeURIComponent(newsId), {})
   },
 
   /** 全部标记已读 */

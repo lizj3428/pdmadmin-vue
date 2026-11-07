@@ -8,6 +8,16 @@
       style="margin-bottom: 12px"
     />
 
+    <!-- 教师身份专用提示：本人投稿在下面列表里已被过滤掉 -->
+    <el-alert
+      v-if="adminStore.identity === 'teacher'"
+      type="warning"
+      :closable="false"
+      show-icon
+      title="当前是教师账号，审批列表已自动隐藏您本人提交的资讯，避免自己审自己的稿。"
+      style="margin-bottom: 12px"
+    />
+
     <!-- 搜索表单区域 -->
     <el-form :inline="true">
       <el-form-item label="标题">
@@ -138,6 +148,18 @@ import { newsApi } from '@/api/news-api'
 import { categoryApi } from '@/api/category-api'
 import Constants from '@/utils/constants'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAdminStore } from '@/stores/admin'
+
+const adminStore = useAdminStore()
+
+/** 这条稿子是不是「教师本人」投的？管理员账号不参与过滤 */
+function isOwnDraft(row: any) {
+  return (
+    adminStore.identity === 'teacher' &&
+    row.authorType === 2 &&
+    String(row.authorId) === String(adminStore.admin.id)
+  )
+}
 
 const datalist = ref<any[]>([])
 const listLoading = ref(false)
@@ -198,8 +220,12 @@ async function getList() {
     if (queryForm.auditStatus !== null && queryForm.auditStatus !== '') params.auditStatus = queryForm.auditStatus
 
     const res: any = await newsApi.queryPageList(params, queryForm.pagenum, queryForm.pagesize)
-    datalist.value = res.data.list
-    total.value = res.data.total
+    const pageList: any[] = res.data.list || []
+    // 教师身份下剔除本人投稿，剩下的才是可审批的
+    const visible = pageList.filter((r) => !isOwnDraft(r))
+    datalist.value = visible
+    // 后端 total 含本人投稿，这里按本页被剔除的条数扣减，让分页数字和看到的列表对得上
+    total.value = Math.max(0, res.data.total - (pageList.length - visible.length))
   } catch (error) {
     console.error(error)
   } finally {

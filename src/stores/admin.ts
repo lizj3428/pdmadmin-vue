@@ -10,7 +10,8 @@ export const useAdminStore = defineStore('admin', () => {
        // 有没有管理端权限。存在 localStorage 里，刷新页面后路由守卫还能用
        const adminFlag = ref(getLocalStorage(Constants.USER_ADMIN_FLAG) === '1')
        const admin = reactive({
-         id:'',
+         // 从缓存恢复：审核页要靠它识别"哪条是我自己投的稿"，刷新不能丢
+         id: getLocalStorage(Constants.USER_ID),
          username:'',
          name:'',
          tel:'',
@@ -29,7 +30,7 @@ export const useAdminStore = defineStore('admin', () => {
         * 顶栏就不用关心当前登录的到底是哪类账号了。
         */
        function setAdminInfo(data:any, idt:string = 'admin'){
-            admin.id = data.id
+            admin.id = String(data.id ?? '')
             admin.username = data.username || data.teacherNo || data.studentNo || ''
             admin.name = data.name || data.realName || ''
             admin.tel = data.tel || data.phone || ''
@@ -40,6 +41,7 @@ export const useAdminStore = defineStore('admin', () => {
             saveLocalStorage(Constants.USER_TOKEN, data.token);
             saveLocalStorage(Constants.USER_IDENTITY, idt);
             saveLocalStorage(Constants.USER_ADMIN_FLAG, adminFlag.value ? '1' : '0');
+            saveLocalStorage(Constants.USER_ID, admin.id);
        } 
        /** 能不能进管理端（/index 那套页面） */
        const canManage = computed(() => identity.value === 'admin' || adminFlag.value)

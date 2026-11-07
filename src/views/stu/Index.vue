@@ -65,6 +65,7 @@ const navs = [
 ]
 
 const unread = ref(0)
+let unreadRequest = 0
 
 function isActive(path: string) {
   if (path === '/stu/home') {
@@ -81,9 +82,12 @@ function go(path: string) {
 }
 
 async function loadUnread() {
+  const request = ++unreadRequest
   try {
     const res: any = await stuApi.unreadCount()
-    unread.value = Number(res.data) || 0
+    if (request === unreadRequest) {
+      unread.value = Number(res.data) || 0
+    }
   } catch {
     // 未读数失败不影响主流程，静默处理
   }

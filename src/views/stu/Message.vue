@@ -93,7 +93,11 @@ function onPageChange(p: number) {
 }
 
 async function openMessage(item: any) {
-  // 先标已读：消息点了就算看过了，不等跳转结果
+  if (item.msgType === 1 && item.newsId) {
+    router.push(`/stu/news/${item.newsId}`)
+    return
+  }
+
   if (item.readFlag === 0) {
     try {
       await stuApi.readMessage(item.id)
