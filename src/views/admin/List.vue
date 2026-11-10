@@ -68,7 +68,7 @@ import Addorupdate from './Addorupdate.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 表格数据、加载状态、总条数
-const datalist = ref([])
+const datalist = ref<{ id: number }[]>([])
 const listLoading = ref(false)
 const total = ref(0)
 
@@ -84,7 +84,7 @@ const queryForm = reactive({ ...queryFormState })
 //定义引用新增或修改组件的响应式变量
 const operateRef = ref()
 //所有选中的记录
-const multipleSelection = ref([])
+const multipleSelection = ref<{ id: number }[]>([])
 // 获取列表数据
 async function getList() {
   try {
@@ -119,11 +119,11 @@ function add() {
   operateRef.value.showModal()
 }
 
-function update(row) {
+function update(row: { id: number }) {
   operateRef.value.showModal(row)
 }
 
-function confirmDel(id) {
+function confirmDel(id?: number) {
   ElMessageBox.confirm('是否确认删除?', '确认删除', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -141,7 +141,7 @@ function confirmDel(id) {
     })
 }
 
-async function del(id) {
+async function del(id?: number) {
   try {
     listLoading.value = true
     let ids = id ? [id] : multipleSelection.value.map((item) => item.id)
@@ -158,7 +158,7 @@ async function del(id) {
   }
 }
 
-function handleSelectionChange(val) {
+function handleSelectionChange(val: { id: number }[]) {
   multipleSelection.value = val
 }
 

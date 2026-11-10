@@ -54,6 +54,7 @@
 import { ref,reactive } from 'vue'
 import { adminApi } from '@/api/admin-api'
 import { ElMessage } from 'element-plus'
+import type { FormItemRule } from 'element-plus'
 //公开父主键可以调用的方法
 defineExpose({showModal})
 
@@ -61,7 +62,7 @@ const unreadonly = ref(false);
 const visible = ref(false);
 const btnLoading = ref(false);
 const emit = defineEmits(['refresh'])
-function showModal(row) {
+function showModal(row?: { id?: number; username?: string; userpwd?: string; name?: string; sex?: string; tel?: string; headurl?: string }) {
   if(row){
     Object.assign(form, row);
     unreadonly.value = true;
@@ -86,14 +87,14 @@ const formDefault = {
 }
 //表单验证规则
 
-let form = reactive({ ...formDefault })
+let form = reactive<{ id?: number; username?: string; userpwd?: string; name?: string; sex?: string; tel?: string; headurl?: string }>({ ...formDefault })
 const rules = reactive( {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   // 密码：新增时必须填；修改时可以留空，表示不改密码。
   // 后端不再把密码密文返回给前端，所以修改时密码框一定是空的，
   // 如果用 required 死规则，会逼用户每次编辑都重输密码。
   userpwd: [{
-    validator: (rule, value, callback) => {
+    validator: (rule: FormItemRule, value: string, callback: (error?: Error) => void) => {
       if (!form.id && !value) {
         callback(new Error('请输入密码'))
       } else {
