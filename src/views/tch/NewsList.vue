@@ -1,13 +1,12 @@
 <template>
   <div class="list-container">
-    <!-- 说明条：让老师一眼明白稿子要经过审核才会发出去 -->
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      title="投稿后需管理员审核，通过后才会发布给学生。被驳回的稿子可以修改后重新提交。"
-      style="margin-bottom: 12px"
-    />
+    <header class="submission-heading">
+      <div>
+        <h1>我的投稿</h1>
+        <p>投稿通过审核后才会发布。被驳回的稿件可根据审核意见修改后重提。</p>
+      </div>
+      <el-button type="primary" :disabled="editLoadingId !== null" @click="add">写新投稿</el-button>
+    </header>
 
     <el-form :inline="true">
       <el-form-item label="标题">
@@ -23,8 +22,8 @@
       </el-form-item>
 
       <el-form-item>
-        <el-button @click="onSearch()" type="primary">查询</el-button>
-        <el-button @click="add()" type="primary">写新投稿</el-button>
+        <el-button @click="onSearch">查询</el-button>
+        <el-button @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -39,7 +38,14 @@
       :header-cell-style="{ backgroundColor: '#f5f5f5' }"
     >
       <el-table-column header-align="center" align="center" prop="id" label="ID" width="70" />
-      <el-table-column header-align="center" align="center" prop="title" label="标题" show-overflow-tooltip min-width="220" />
+      <el-table-column prop="title" label="标题" min-width="220">
+        <template #default="scope">
+          <span class="submission-title">{{ scope.row.title }}</span>
+          <p v-if="scope.row.auditStatus === 2" class="submission-reason">
+            驳回原因：{{ scope.row.auditOpinion || '未填写审核意见' }}
+          </p>
+        </template>
+      </el-table-column>
       <el-table-column header-align="center" align="center" label="分类" width="120">
         <template #default="scope">
           {{ categoryName(scope.row.categoryId) }}
@@ -59,24 +65,28 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column header-align="center" align="center" label="发布时间" width="170">
+      <el-table-column header-align="center" align="center" label="提交时间" width="170">
         <template #default="scope">
-          {{ formatTime(scope.row.publishTime || scope.row.createTime) }}
+          {{ formatTime(scope.row.createTime) }}
         </template>
       </el-table-column>
 
       <el-table-column header-align="center" align="center" label="操作" width="200" fixed="right">
         <template #default="scope">
-          <!-- 已通过审核的稿子后端会拒绝修改，这里直接把按钮禁掉，别让人点了才报错 -->
           <el-button
+            v-if="scope.row.auditStatus !== 1"
             type="primary"
+            link
             size="small"
-            :disabled="scope.row.auditStatus === 1"
+            :loading="editLoadingId === scope.row.id"
+            :disabled="editLoadingId !== null && editLoadingId !== scope.row.id"
             @click="edit(scope.row)"
           >
-            编辑
+            {{ scope.row.auditStatus === 2 ? '修改后重提' : '编辑' }}
           </el-button>
-          <el-button type="success" size="small" @click="openDetail(scope.row)">详情</el-button>
+          <el-button link size="small" :disabled="editLoadingId !== null" @click="openDetail(scope.row)">
+            查看详情
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -86,18 +96,28 @@
       background
       layout="total, prev, pager, next"
       :total="total"
+      :current-page="queryForm.pagenum"
       :page-size="queryForm.pagesize"
       style="justify-content: flex-end; margin-top: 12px"
     />
 
     <!-- ================= 新增 / 编辑弹窗 ================= -->
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑投稿' : '写新投稿'" width="720px" top="6vh">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="editorTitle"
+      width="min(720px, 94vw)"
+      top="6vh"
+      :close-on-click-modal="!submitLoading"
+      :close-on-press-escape="!submitLoading"
+      :show-close="!submitLoading"
+    >
       <el-alert
-        v-if="form.id"
+        v-if="isResubmitting"
         type="warning"
         :closable="false"
         show-icon
-        title="保存后会重新进入待审核状态，之前的驳回意见会被清除。"
+        :title="'原驳回原因：' + (previousAuditOpinion || '未填写审核意见')"
+        description="修改后重新提交，稿件会回到待审核状态。"
         style="margin-bottom: 12px"
       />
 
@@ -153,8 +173,10 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="submit()">提交</el-button>
+        <el-button :disabled="submitLoading" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="submit">
+          {{ isResubmitting ? '重新提交' : '提交审核' }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -195,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { tchApi } from '@/api/tch-api'
 import Constants from '@/utils/constants'
 import { ElMessage } from 'element-plus'
@@ -217,6 +239,14 @@ const queryForm = reactive<any>({ ...queryFormState })
 
 const dialogVisible = ref(false)
 const submitLoading = ref(false)
+const editLoadingId = ref<number | string | null>(null)
+const previousAuditStatus = ref<number | null>(null)
+const previousAuditOpinion = ref('')
+const isResubmitting = computed(() => previousAuditStatus.value === 2)
+const editorTitle = computed(() => {
+  if (isResubmitting.value) return '修改后重提'
+  return form.id ? '编辑投稿' : '写新投稿'
+})
 const form = reactive<any>({
   id: null,
   title: '',
@@ -297,13 +327,21 @@ function onSearch() {
   getList()
 }
 
+function resetQuery() {
+  Object.assign(queryForm, queryFormState)
+  getList()
+}
+
 function handleCurrentPageChange(val: number) {
+  if (queryForm.pagenum === val) return
   queryForm.pagenum = val
   getList()
 }
 
 // ================= 新增 / 编辑 =================
 function resetForm() {
+  previousAuditStatus.value = null
+  previousAuditOpinion.value = ''
   form.id = null
   form.title = ''
   form.summary = ''
@@ -321,10 +359,19 @@ function add() {
 
 /** 列表不返回正文和标签，编辑前必须先查详情，否则保存会把正文清空 */
 async function edit(row: any) {
+  if (editLoadingId.value !== null) return
+  editLoadingId.value = row.id
   resetForm()
   try {
     const res: any = await tchApi.detail(row.id)
     const d = res.data
+    if (d.auditStatus === 1) {
+      ElMessage.warning('该稿件已通过审核，不能修改')
+      getList()
+      return
+    }
+    previousAuditStatus.value = d.auditStatus
+    previousAuditOpinion.value = d.auditOpinion || ''
     form.id = d.id
     form.title = d.title
     form.summary = d.summary
@@ -336,10 +383,13 @@ async function edit(row: any) {
     dialogVisible.value = true
   } catch (err) {
     console.error(err)
+  } finally {
+    editLoadingId.value = null
   }
 }
 
 async function submit() {
+  if (submitLoading.value) return
   if (!form.title) {
     ElMessage.warning('请填写标题')
     return
@@ -383,3 +433,38 @@ onMounted(async () => {
   loadTags()
 })
 </script>
+
+<style scoped lang="less">
+.submission-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  h1 {
+    margin-bottom: 4px;
+    color: #1e293b;
+    font-size: 20px;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+.submission-title {
+  color: #1e293b;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.submission-reason {
+  margin-top: 4px;
+  color: #991b1b;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+</style>

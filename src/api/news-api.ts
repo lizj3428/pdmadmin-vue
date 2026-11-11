@@ -25,6 +25,10 @@ export const newsApi = {
     return post('/news/update', param)
   },
 
+  setTop: (id: number | string, topFlag: 0 | 1) => {
+    return post(`/news/top?id=${encodeURIComponent(id)}&topFlag=${topFlag}`, {})
+  },
+
   /** 批量删除资讯，ids 用逗号分隔 */
   delete: (ids: any) => {
     return post('/news/del?ids=' + ids, {})

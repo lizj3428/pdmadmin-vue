@@ -1,24 +1,16 @@
 <template>
-  <div class="header">
-    <div class="header-menu">
-      <div class="haeder-logo">
-        <div class="header-title">校园资讯推送后台</div>
-      </div>
-      <div class="header-rinfo">
-        当前用户：
-        <span>{{ admin.name || admin.username }}</span>
-        <!-- 教师/学生是被授权后才进得来管理端的，标一下身份，演示时一眼能看出是谁在操作 -->
-        <el-tag
-          size="small"
-          :type="identity === 'admin' ? 'danger' : 'warning'"
-          style="margin-left: 8px"
-        >
-          {{ identityName }}
-        </el-tag>
-        <span class="header-exit">
-          <a @click="loginOut()">退出</a>
-        </span>
-      </div>
+  <div class="pdm-topbar">
+    <div class="pdm-topbar__brand">
+      <img alt="" src="/campus-mark.svg" width="36" height="36" />
+      <span class="pdm-topbar__title">校园资讯推送平台</span>
+      <span class="pdm-topbar__section">{{ section }}</span>
+    </div>
+    <div class="pdm-topbar__account">
+      <span class="pdm-topbar__name" :title="admin.name || admin.username">
+        {{ admin.name || admin.username }}
+      </span>
+      <el-tag size="small" effect="dark" type="info">{{ identityName }}</el-tag>
+      <button class="pdm-topbar__logout" type="button" @click="loginOut">退出</button>
     </div>
   </div>
 </template>
@@ -30,6 +22,7 @@ import { studentApi } from '@/api/student-api'
 import { clearLocalStorage } from '@/utils/utils'
 import { useAdminStore } from '@/stores/admin'
 import { storeToRefs } from 'pinia'
+withDefaults(defineProps<{ section?: string }>(), { section: '管理后台' })
 const adminStore = useAdminStore()
 const { admin, identity, identityName } = storeToRefs(adminStore)
 
@@ -54,3 +47,91 @@ async function loginOut() {
   }
 }
 </script>
+
+<style scoped lang="less">
+.pdm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 24px;
+  background: #001529;
+  color: #fff;
+
+  &__brand,
+  &__account {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__brand img,
+  &__account .el-tag,
+  &__logout {
+    flex-shrink: 0;
+  }
+
+  &__title,
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &__section {
+    padding-left: 12px;
+    border-left: 1px solid #33475b;
+    color: #b8c7d6;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  &__name {
+    max-width: 160px;
+    font-size: 14px;
+  }
+
+  &__logout {
+    padding: 6px 10px;
+    border: 1px solid #40556d;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: #173550;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .pdm-topbar {
+    padding: 0 12px;
+    gap: 8px;
+
+    &__brand,
+    &__account {
+      gap: 8px;
+    }
+
+    &__section,
+    &__name {
+      display: none;
+    }
+
+    &__title {
+      font-size: 15px;
+    }
+  }
+}
+</style>

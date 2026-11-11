@@ -3,26 +3,35 @@
     <!-- ============ 页头 ============ -->
     <div class="page-head">
       <div>
-        <div class="page-title">数据看板</div>
+        <h1 class="page-title">数据看板</h1>
         <div class="page-sub">校园资讯推送平台 · 实时聚合数据</div>
       </div>
       <el-button :loading="loading" @click="loadAll()">刷新数据</el-button>
     </div>
 
     <!-- ============ 指标卡片 ============ -->
-    <el-row :gutter="12">
-      <el-col :span="6" v-for="card in cards" :key="card.key">
-        <div class="stat-card" :class="card.clickable ? 'clickable' : ''" @click="card.clickable ? go(card.to) : null">
-          <div class="stat-label">{{ card.label }}</div>
-          <div class="stat-value" :style="{ color: card.color }">{{ card.value }}</div>
-          <div class="stat-extra">{{ card.extra }}</div>
-        </div>
-      </el-col>
-    </el-row>
+    <section v-for="group in cardGroups" :key="group.title" class="stat-group">
+      <h2 class="stat-group__title">{{ group.title }}</h2>
+      <div class="stat-grid">
+        <component
+          :is="card.to ? 'button' : 'div'"
+          v-for="card in group.items"
+          :key="card.key"
+          :type="card.to ? 'button' : undefined"
+          class="stat-card"
+          :class="{ 'stat-card--primary': group.primary, clickable: card.to }"
+          @click="card.to && go(card.to)"
+        >
+          <span class="stat-label">{{ card.label }}</span>
+          <span class="stat-value">{{ card.value }}</span>
+          <span class="stat-extra">{{ card.extra }}</span>
+        </component>
+      </div>
+    </section>
 
     <!-- ============ 图表区 ============ -->
     <el-row :gutter="12" style="margin-top: 12px">
-      <el-col :span="10">
+      <el-col :xs="24" :sm="24" :lg="10" class="chart-column">
         <el-card shadow="never" class="chart-card">
           <template #header>
             <div class="chart-head">
@@ -35,12 +44,12 @@
         </el-card>
       </el-col>
 
-      <el-col :span="14">
+      <el-col :xs="24" :sm="24" :lg="14" class="chart-column">
         <el-card shadow="never" class="chart-card">
           <template #header>
             <div class="chart-head">
               <span>近 7 天推送趋势</span>
-              <el-tag size="small" type="success">成功 {{ sumBy('successCount') }} 条</el-tag>
+              <el-tag size="small" type="info">已提交或送达 {{ sumBy('successCount') }} 条</el-tag>
             </div>
           </template>
           <VChart v-if="pushData.length" :option="pushOption" autoresize class="chart" />
@@ -54,7 +63,7 @@
       <template #header>
         <div class="chart-head">
           <span>阅读量 Top 5</span>
-          <el-tag size="small" type="warning">热点资讯走 Redis 缓存</el-tag>
+          <el-tag size="small" type="info">按阅读量排序</el-tag>
         </div>
       </template>
       <el-table :data="topNews" border stripe size="small" v-loading="loading">
@@ -99,63 +108,63 @@ const topNews = ref<any[]>([])
 // ================= 卡片 =================
 const cards = computed(() => [
   {
-    key: 'news',
-    label: '资讯总数',
-    value: overview.value.newsTotal ?? 0,
-    extra: `已发布 ${overview.value.newsPublished ?? 0} 条`,
-    color: '#409eff',
-  },
-  {
     key: 'pending',
     label: '待审核',
     value: overview.value.newsPending ?? 0,
-    extra: '点击进入审核页',
-    color: '#e6a23c',
-    clickable: true,
+    extra: '进入审核页 →',
     to: '/index/news-audit',
+    primary: true,
   },
   {
-    key: 'view',
-    label: '总阅读量',
-    value: overview.value.viewTotal ?? 0,
-    extra: '全部资讯累计',
-    color: '#f56c6c',
-  },
-  {
-    key: 'student',
-    label: '学生用户',
-    value: overview.value.studentTotal ?? 0,
-    extra: `启用 ${overview.value.studentActive ?? 0} 人`,
-    color: '#67c23a',
-  },
-  {
-    key: 'teacher',
-    label: '教师用户',
-    value: overview.value.teacherTotal ?? 0,
-    extra: '可投稿',
-    color: '#909399',
+    key: 'news',
+    label: '已发布资讯',
+    value: overview.value.newsPublished ?? 0,
+    extra: `共 ${overview.value.newsTotal ?? 0} 条资讯`,
+    primary: true,
   },
   {
     key: 'task',
     label: '推送任务',
     value: overview.value.taskTotal ?? 0,
-    extra: '含定时与立即',
-    color: '#409eff',
-  },
-  {
-    key: 'push',
-    label: '推送人次',
-    value: overview.value.pushTotal ?? 0,
-    extra: `成功 ${overview.value.pushSuccess ?? 0} 人次`,
-    color: '#67c23a',
+    extra: '含立即与定时推送',
+    primary: true,
   },
   {
     key: 'msg',
     label: '站内信',
     value: overview.value.msgTotal ?? 0,
     extra: `未读 ${overview.value.msgUnread ?? 0} 条`,
-    color: '#e6a23c',
+    primary: true,
   },
+  {
+    key: 'view',
+    label: '总阅读量',
+    value: overview.value.viewTotal ?? 0,
+    extra: '全部资讯累计',
+  },
+  {
+    key: 'student',
+    label: '学生用户',
+    value: overview.value.studentTotal ?? 0,
+    extra: `启用 ${overview.value.studentActive ?? 0} 人`,
+  },
+  {
+    key: 'teacher',
+    label: '教师用户',
+    value: overview.value.teacherTotal ?? 0,
+    extra: '可投稿',
+  },
+  {
+    key: 'push',
+    label: '推送人次',
+    value: overview.value.pushTotal ?? 0,
+    extra: `已提交或送达 ${overview.value.pushSuccess ?? 0} 人次`,
+  },
+])
+
+const cardGroups = computed(() => [
+  { title: '运营概览', primary: true, items: cards.value.filter((card) => card.primary) },
+  { title: '其他指标', primary: false, items: cards.value.filter((card) => !card.primary) },
 ])
 
 // ================= 图表配置 =================
@@ -193,7 +202,7 @@ const pushOption = computed(() => ({
   },
   series: [
     {
-      name: '成功',
+      name: '已提交或送达',
       type: 'line',
       smooth: true,
       symbolSize: 7,
@@ -272,44 +281,80 @@ onMounted(() => {
 
 .page-sub {
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
   margin-top: 4px;
+}
+
+.stat-group {
+  margin-bottom: 18px;
+}
+
+.stat-group__title {
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
+  gap: 12px;
 }
 
 .stat-card {
   background: #fff;
   border: 1px solid #ebeef5;
   border-radius: 8px;
+  padding: 12px 16px;
+  font: inherit;
+  text-align: left;
+}
+
+.stat-card--primary {
   padding: 16px 18px;
-  margin-bottom: 12px;
-  transition: all 0.2s;
+  border-color: #dbe7f7;
+  background: #f8fbff;
 }
 
 .stat-card.clickable {
   cursor: pointer;
 }
 
-.stat-card.clickable:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
-  transform: translateY(-2px);
+.stat-card.clickable:hover,
+.stat-card.clickable:focus-visible {
+  border-color: #2563eb;
+  background: #eff6ff;
 }
 
 .stat-label {
+  display: block;
   font-size: 13px;
-  color: #909399;
+  color: #475569;
 }
 
 .stat-value {
-  font-size: 28px;
+  display: block;
+  font-size: 22px;
   font-weight: 600;
   line-height: 1.4;
   margin: 4px 0 2px;
+  color: #334155;
+}
+
+.stat-card--primary .stat-value {
+  font-size: 30px;
+  color: #1d4ed8;
 }
 
 .stat-extra {
+  display: block;
   font-size: 12px;
-  color: #c0c4cc;
+  color: #64748b;
+}
+
+.chart-column {
+  margin-bottom: 12px;
 }
 
 .chart-card :deep(.el-card__body) {
@@ -318,6 +363,8 @@ onMounted(() => {
 
 .chart-head {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   align-items: center;
   justify-content: space-between;
   font-size: 14px;

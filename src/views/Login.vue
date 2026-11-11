@@ -5,9 +5,10 @@
         <div class="login-container-content-top">
           <div>
             <div style="text-align: center; padding-bottom: 25px">
-              <img alt="logo" class="login-logo" src="../assets/images/login/logo2.png" />
+              <img alt="" class="login-logo" src="/campus-mark.svg" width="60" height="60" />
             </div>
-            <span class="login-title"> 潘多码后台管理系统 </span>
+            <h1 class="login-title">校园资讯推送平台</h1>
+            <p class="login-subtitle">请选择身份登录</p>
           </div>
         </div>
 
@@ -117,7 +118,7 @@ let form = reactive({
 const accountPlaceholder = computed(() => {
   if (form.identity === 'teacher') return '教工号'
   if (form.identity === 'student') return '学号'
-  return '用户名'
+  return '管理员账号'
 })
 
 // 验证码只有管理员需要，校验规则跟着身份走

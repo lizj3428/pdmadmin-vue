@@ -50,7 +50,12 @@
     >
       <el-table-column type="selection" width="55" />
       <el-table-column header-align="center" align="center" prop="id" label="ID" width="70" />
-      <el-table-column header-align="center" align="center" prop="title" label="标题" show-overflow-tooltip min-width="180" />
+      <el-table-column header-align="center" align="center" prop="title" label="标题" show-overflow-tooltip min-width="180">
+        <template #default="scope">
+          <el-tag v-if="scope.row.topFlag === 1" size="small" class="news-top-tag">置顶</el-tag>
+          {{ scope.row.title }}
+        </template>
+      </el-table-column>
       <el-table-column header-align="center" align="center" label="分类" width="120">
         <template #default="scope">
           {{ categoryName(scope.row.categoryId) }}
@@ -84,8 +89,15 @@
         </template>
       </el-table-column>
 
-      <el-table-column header-align="center" align="center" label="操作" width="220" fixed="right">
+      <el-table-column header-align="center" align="center" label="操作" width="288" fixed="right">
         <template #default="scope">
+          <el-button
+            v-if="scope.row.auditStatus === 1 && scope.row.publishStatus === 1"
+            size="small"
+            :loading="topLoadingId === scope.row.id"
+            :disabled="topLoadingId !== null && topLoadingId !== scope.row.id"
+            @click="toggleTop(scope.row)"
+          >{{ scope.row.topFlag === 1 ? '取消置顶' : '置顶' }}</el-button>
           <el-button type="primary" size="small" @click="update(scope.row)">编辑</el-button>
           <el-button type="success" size="small" @click="openDetail(scope.row)">详情</el-button>
           <el-button type="danger" size="small" @click="confirmDel(scope.row.id)">删除</el-button>
@@ -215,6 +227,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const datalist = ref<any[]>([])
 const listLoading = ref(false)
+const topLoadingId = ref<number | string | null>(null)
 const total = ref(0)
 const multipleSelection = ref<any[]>([])
 
@@ -331,6 +344,21 @@ async function loadTags() {
 function onSearch() {
   queryForm.pagenum = 1
   getList()
+}
+
+async function toggleTop(row: { id: number | string; topFlag?: number }) {
+  if (topLoadingId.value !== null) return
+  topLoadingId.value = row.id
+  const topFlag = row.topFlag === 1 ? 0 : 1
+  try {
+    await newsApi.setTop(row.id, topFlag)
+    ElMessage.success(topFlag === 1 ? '已置顶' : '已取消置顶')
+    await getList()
+  } catch (error) {
+    console.error(error)
+  } finally {
+    topLoadingId.value = null
+  }
 }
 
 function handleCurrentPageChange(val: number) {
@@ -473,3 +501,9 @@ onMounted(async () => {
   loadTags()
 })
 </script>
+
+<style scoped lang="less">
+.news-top-tag {
+  margin-inline-end: 6px;
+}
+</style>

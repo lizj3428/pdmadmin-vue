@@ -1,8 +1,8 @@
 <template>
   <div class="common-layout">
     <el-container>
-      <el-header style="height: 90px">
-        <Header></Header>
+      <el-header class="pdm-shell-header">
+        <Header section="教师工作台" />
       </el-header>
       <el-container>
         <el-aside
@@ -15,7 +15,7 @@
           class="pdm-content__wrapper"
           :class="{ 'pdm-content__wrapper--collapsed': collapsed }"
         >
-          <el-main class="pdm-content" :style="siteContent.siteContentHeight">
+          <el-main class="pdm-content">
             <el-card>
               <router-view />
             </el-card>
@@ -33,7 +33,7 @@
 import Header from '../../components/Header.vue'
 import TchMenu from '../../components/TchMenu.vue'
 import Footer from '../../components/Footer.vue'
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
 /** 侧边栏折叠状态：刷新后保留上次选择 */
 const sidebarCollapsedKey = 'pdm-tch-sidebar-collapsed'
@@ -53,18 +53,6 @@ function toggleSidebar() {
  * 这里不连 WebSocket：教师端没有实时通知需求，
  * 连了反而会和同一个浏览器里开着的管理端抢同一条连接。
  */
-const siteContent = reactive({
-  documentClientHeight: 0,
-  siteContentHeight: {} as any,
-})
-
-function getSiteContentHeight() {
-  siteContent.documentClientHeight = document.documentElement.clientHeight
-  const hight = siteContent.documentClientHeight - 90 - 100
-  siteContent.siteContentHeight = { minHeight: hight + 'px' }
-}
-
-getSiteContentHeight()
 </script>
 
 <style lang="less">

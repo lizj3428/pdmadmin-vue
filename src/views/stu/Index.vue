@@ -23,8 +23,8 @@
         </nav>
 
         <div class="stu-user">
-          <span class="stu-user__name">{{ admin.name || '同学' }}</span>
-          <a class="stu-user__exit" @click="logout">退出</a>
+          <span class="stu-user__name" :title="studentName">{{ studentName || '学生用户' }}</span>
+          <button class="stu-user__exit" type="button" @click="logout">退出登录</button>
         </div>
       </div>
     </header>
@@ -57,6 +57,7 @@ const router = useRouter()
 const route = useRoute()
 const adminStore = useAdminStore()
 const { admin } = storeToRefs(adminStore)
+const studentName = ref(admin.value.name.trim())
 
 const navs = [
   { label: '首页', path: '/stu/home' },
@@ -78,6 +79,16 @@ function isActive(path: string) {
 function go(path: string) {
   if (route.path !== path) {
     router.push(path)
+  }
+}
+
+async function loadStudentName() {
+  if (studentName.value) return
+  try {
+    const res: { data?: { realName?: string } } = await stuApi.profile()
+    studentName.value = res.data?.realName?.trim() || ''
+  } catch {
+    return
   }
 }
 
@@ -111,6 +122,7 @@ async function logout() {
 let timer: number | undefined
 
 onMounted(() => {
+  loadStudentName()
   loadUnread()
   // 站着不动时未读数也能自己更新，不用手动刷新页面
   timer = window.setInterval(loadUnread, 60000)
@@ -244,16 +256,55 @@ onUnmounted(() => {
   font-size: 14px;
 
   &__name {
+    max-width: clamp(56px, 14vw, 144px);
+    overflow: hidden;
     color: #1c2333;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__exit {
-    color: #8b95a5;
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border: 1px solid #dce4ef;
+    border-radius: 6px;
+    background: #fff;
+    color: #475569;
+    font: inherit;
+    white-space: nowrap;
     cursor: pointer;
 
-    &:hover {
-      color: #2f6fed;
+    &:hover,
+    &:focus-visible {
+      border-color: #93b4f6;
+      background: #eff6ff;
+      color: #1d4ed8;
     }
+  }
+}
+
+@media (max-width: 540px) {
+  .stu-header__inner {
+    gap: 10px;
+    padding: 0 12px;
+  }
+
+  .stu-brand__text {
+    display: none;
+  }
+
+  .stu-nav__item {
+    padding-inline: 6px;
+    white-space: nowrap;
+  }
+
+  .stu-user {
+    gap: 6px;
+  }
+
+  .stu-user__exit {
+    padding-inline: 6px;
   }
 }
 

@@ -1,10 +1,14 @@
 <template>
   <div class="list-container">
+    <header class="audit-heading">
+      <h1>资讯审核</h1>
+      <p>默认显示待审核资讯。打开详情，核对正文、分类和标签后再处理。</p>
+    </header>
     <el-alert
       type="info"
       :closable="false"
       show-icon
-      title="审核通过后资讯会自动发布；驳回会记录审核意见并保持未发布状态。"
+      title="通过后会发布资讯并触发自动推送；驳回意见会保留给投稿人查看。"
       style="margin-bottom: 12px"
     />
 
@@ -41,12 +45,26 @@
       <el-form-item>
         <el-button type="primary" @click="onSearch()">查询</el-button>
         <el-button @click="resetQuery()">重置</el-button>
-        <el-button type="success" plain @click="batchAudit(1)">批量通过</el-button>
-        <el-button type="danger" plain @click="batchAudit(2)">批量驳回</el-button>
       </el-form-item>
     </el-form>
 
-    <el-divider border-style="dashed" />
+    <div class="audit-batch">
+      <span>已选 {{ multipleSelection.length }} 条</span>
+      <div class="audit-batch__actions">
+        <el-button
+          type="success"
+          plain
+          :disabled="!multipleSelection.length || listLoading || auditSubmitting"
+          @click="batchAudit(1)"
+        >批量通过</el-button>
+        <el-button
+          type="danger"
+          plain
+          :disabled="!multipleSelection.length || listLoading || auditSubmitting"
+          @click="batchAudit(2)"
+        >批量驳回</el-button>
+      </div>
+    </div>
 
     <!-- 数据表格 -->
     <el-table
@@ -100,11 +118,16 @@
         </template>
       </el-table-column>
 
-      <el-table-column header-align="center" align="center" label="操作" width="210" fixed="right">
+      <el-table-column header-align="center" align="center" label="操作" width="126" fixed="right">
         <template #default="scope">
-          <el-button type="success" size="small" @click="doPass(scope.row)">通过</el-button>
-          <el-button type="danger" size="small" @click="doReject(scope.row)">驳回</el-button>
-          <el-button type="primary" size="small" @click="openDetail(scope.row)">详情</el-button>
+          <el-button
+            type="primary"
+            plain
+            size="small"
+            :loading="detailLoadingId === scope.row.id"
+            :disabled="auditSubmitting || (detailLoadingId !== null && detailLoadingId !== scope.row.id)"
+            @click="openDetail(scope.row)"
+          >查看详情</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -119,25 +142,45 @@
     />
 
     <!-- ================= 详情弹窗 ================= -->
-    <el-dialog v-model="detailVisible" title="资讯详情" width="680px" top="8vh">
-      <el-descriptions :column="2" border v-if="detail">
-        <el-descriptions-item label="标题" :span="2">{{ detail.title }}</el-descriptions-item>
-        <el-descriptions-item label="分类">{{ categoryName(detail.categoryId) }}</el-descriptions-item>
-        <el-descriptions-item label="重要程度">{{ levelText(detail.level) }}</el-descriptions-item>
-        <el-descriptions-item label="审核状态">{{ auditText(detail.auditStatus) }}</el-descriptions-item>
-        <el-descriptions-item label="发布状态">{{ publishText(detail.publishStatus) }}</el-descriptions-item>
-        <el-descriptions-item label="标签" :span="2">
-          <el-tag v-for="t in detail.tagNames || []" :key="t" size="small" style="margin-right: 6px">
-            {{ t }}
-          </el-tag>
-          <span v-if="!detail.tagNames || detail.tagNames.length === 0" style="color: #999">无</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="审核意见" :span="2">{{ detail.auditOpinion || '无' }}</el-descriptions-item>
-        <el-descriptions-item label="摘要" :span="2">{{ detail.summary || '无' }}</el-descriptions-item>
-        <el-descriptions-item label="正文" :span="2">
-          <div style="white-space: pre-wrap">{{ detail.content }}</div>
-        </el-descriptions-item>
-      </el-descriptions>
+    <el-dialog
+      v-model="detailVisible"
+      title="资讯审核详情"
+      width="min(720px, 94vw)"
+      top="8vh"
+      :close-on-click-modal="!auditSubmitting"
+      :close-on-press-escape="!auditSubmitting"
+      :show-close="!auditSubmitting"
+    >
+      <div v-if="detail" class="audit-preview" tabindex="0" role="region" aria-label="资讯内容">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="标题" :span="2">{{ detail.title }}</el-descriptions-item>
+          <el-descriptions-item label="分类">{{ categoryName(detail.categoryId) }}</el-descriptions-item>
+          <el-descriptions-item label="重要程度">{{ levelText(detail.level) }}</el-descriptions-item>
+          <el-descriptions-item label="审核状态">{{ auditText(detail.auditStatus) }}</el-descriptions-item>
+          <el-descriptions-item label="发布状态">{{ publishText(detail.publishStatus) }}</el-descriptions-item>
+          <el-descriptions-item label="标签" :span="2">
+            <el-tag v-for="t in detail.tagNames || []" :key="t" size="small" style="margin-right: 6px">
+              {{ t }}
+            </el-tag>
+            <span v-if="!detail.tagNames || detail.tagNames.length === 0" style="color: #999">无</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="审核意见" :span="2">{{ detail.auditOpinion || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="摘要" :span="2">{{ detail.summary || '无' }}</el-descriptions-item>
+        </el-descriptions>
+        <section class="audit-body" aria-label="资讯正文">
+          <h2>正文</h2>
+          <div class="audit-body__content">{{ detail.content || '暂无正文' }}</div>
+        </section>
+      </div>
+      <template #footer>
+        <el-button :disabled="auditSubmitting" @click="detailVisible = false">关闭</el-button>
+        <el-button type="danger" plain :disabled="!detail || auditSubmitting" @click="doReject(detail)">
+          驳回
+        </el-button>
+        <el-button type="primary" :disabled="!detail || auditSubmitting" @click="doPass(detail)">
+          通过并发布
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -168,6 +211,8 @@ const multipleSelection = ref<any[]>([])
 const categoryOptions = ref<any[]>([])
 const detailVisible = ref(false)
 const detail = ref<any>(null)
+const detailLoadingId = ref<number | string | null>(null)
+const auditSubmitting = ref(false)
 
 const queryFormState = {
   title: '',
@@ -266,25 +311,31 @@ function handleSelectionChange(val: any[]) {
 
 // ================= 审核 =================
 function doPass(row: any) {
-  ElMessageBox.confirm(`确认通过《${row.title}》？通过后会立即发布。`, '审核通过', {
-    confirmButtonText: '确定通过',
+  if (auditSubmitting.value || !row) return
+  ElMessageBox.confirm(`确认通过《${row.title}》？通过后将立即发布，并触发自动推送。`, '审核通过', {
+    confirmButtonText: '确认发布',
     cancelButtonText: '取消',
     type: 'warning',
     center: true,
   })
     .then(async () => {
+      auditSubmitting.value = true
       try {
         await newsApi.audit(row.id, 1, '审核通过')
-        ElMessage.success('已通过并发布')
+        ElMessage.success('资讯已发布')
+        detailVisible.value = false
         getList()
       } catch (err) {
         console.error(err)
+      } finally {
+        auditSubmitting.value = false
       }
     })
     .catch(() => {})
 }
 
 function doReject(row: any) {
+  if (auditSubmitting.value || !row) return
   ElMessageBox.prompt('请输入驳回意见，会记录在资讯上供作者查看', '驳回资讯', {
     confirmButtonText: '确定驳回',
     cancelButtonText: '取消',
@@ -292,12 +343,16 @@ function doReject(row: any) {
     inputValidator: (v: string) => (v && v.trim() ? true : '驳回意见不能为空'),
   })
     .then(async ({ value }) => {
+      auditSubmitting.value = true
       try {
         await newsApi.audit(row.id, 2, value)
         ElMessage.success('已驳回')
+        detailVisible.value = false
         getList()
       } catch (err) {
         console.error(err)
+      } finally {
+        auditSubmitting.value = false
       }
     })
     .catch(() => {})
@@ -305,14 +360,16 @@ function doReject(row: any) {
 
 /** 批量审核：后端没有批量接口，这里逐条调用，把成功和失败分开计数 */
 async function batchAudit(status: number) {
+  if (listLoading.value || auditSubmitting.value) return
   const rows = multipleSelection.value
   if (rows.length === 0) {
     ElMessage.warning('请先勾选要审核的资讯')
     return
   }
   const action = status === 1 ? '通过并发布' : '驳回'
+  const note = status === 1 ? '发布后将触发自动推送。' : ''
   try {
-    await ElMessageBox.confirm(`确认批量${action}选中的 ${rows.length} 条资讯？`, '批量审核', {
+    await ElMessageBox.confirm(`确认批量${action}选中的 ${rows.length} 条资讯？${note}`, '批量审核', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
@@ -322,6 +379,7 @@ async function batchAudit(status: number) {
     return
   }
 
+  auditSubmitting.value = true
   listLoading.value = true
   let ok = 0
   let fail = 0
@@ -334,6 +392,7 @@ async function batchAudit(status: number) {
     }
   }
   listLoading.value = false
+  auditSubmitting.value = false
   if (fail === 0) {
     ElMessage.success(`已处理 ${ok} 条`)
   } else {
@@ -344,12 +403,16 @@ async function batchAudit(status: number) {
 
 // ================= 详情 =================
 async function openDetail(row: any) {
+  if (detailLoadingId.value !== null || auditSubmitting.value) return
+  detailLoadingId.value = row.id
   try {
     const res: any = await newsApi.detail(row.id)
     detail.value = res.data
     detailVisible.value = true
   } catch (err) {
     console.error(err)
+  } finally {
+    detailLoadingId.value = null
   }
 }
 
@@ -358,3 +421,57 @@ onMounted(async () => {
   getList()
 })
 </script>
+
+<style scoped lang="less">
+.audit-heading {
+  margin-bottom: 16px;
+
+  h1 {
+    margin-bottom: 4px;
+    color: #1e293b;
+    font-size: 20px;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+.audit-batch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.audit-preview {
+  max-height: min(56vh, 520px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.audit-body {
+  margin-top: 16px;
+
+  h2 {
+    margin-bottom: 8px;
+    color: #334155;
+    font-size: 15px;
+  }
+
+  &__content {
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+}
+</style>
