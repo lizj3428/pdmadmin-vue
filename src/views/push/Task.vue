@@ -120,6 +120,7 @@
             <el-radio :value="2">按年级</el-radio>
             <el-radio :value="3">按专业</el-radio>
             <el-radio :value="4">按标签</el-radio>
+            <el-radio :value="5">按班级</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -150,6 +151,21 @@
             style="width: 100%"
           >
             <el-option v-for="m in majorOptions" :key="m" :label="m" :value="m" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 班级 -->
+        <el-form-item v-if="form.targetType === 5" label="班级">
+          <el-select
+            v-model="form.classValues"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="输入班级后回车，如 23计算机1班"
+            style="width: 100%"
+          >
+            <el-option v-for="c in classOptions" :key="c" :label="c" :value="c" />
           </el-select>
         </el-form-item>
 
@@ -225,6 +241,7 @@ const newsOptions = ref<any[]>([])
 const tagOptions = ref<any[]>([])
 const gradeOptions = ref<string[]>([])
 const majorOptions = ref<string[]>([])
+const classOptions = ref<string[]>([])
 
 const queryFormState = {
   taskName: '',
@@ -246,6 +263,7 @@ const form = reactive<any>({
   targetType: 1,
   gradeValues: [],
   majorValues: [],
+  classValues: [],
   tagIds: [],
   channel: 1,
   pushType: 1,
@@ -279,6 +297,7 @@ function targetText(type: any, value: any) {
   if (type === 1) return '全部学生'
   if (type === 2) return `年级：${value || '—'}`
   if (type === 3) return `专业：${value || '—'}`
+  if (type === 5) return `班级：${value || '—'}`
   if (type === 4) {
     if (!value) return '标签：—'
     const names = String(value)
@@ -299,6 +318,7 @@ function buildTargetValue() {
   if (form.targetType === 2) return form.gradeValues.join(',')
   if (form.targetType === 3) return form.majorValues.join(',')
   if (form.targetType === 4) return form.tagIds.join(',')
+  if (form.targetType === 5) return form.classValues.join(',')
   return null
 }
 
@@ -340,16 +360,18 @@ async function loadTagOptions() {
   }
 }
 
-/** 年级/专业的候选值直接从学生表里提取，省得手打错字 */
+/** 年级/专业/班级的候选值直接从学生表里提取，省得手打错字 */
 async function loadStudentOptions() {
   try {
     const res: any = await studentApi.queryPageList({}, 1, 500)
     const list = res.data.list || []
     gradeOptions.value = [...new Set(list.map((s: any) => s.grade).filter(Boolean))] as string[]
     majorOptions.value = [...new Set(list.map((s: any) => s.major).filter(Boolean))] as string[]
+    classOptions.value = [...new Set(list.map((s: any) => s.className).filter(Boolean))] as string[]
   } catch (e) {
     gradeOptions.value = []
     majorOptions.value = []
+    classOptions.value = []
   }
 }
 

@@ -30,6 +30,18 @@
           </el-icon>
           <template #title>我的投稿</template>
         </el-menu-item>
+        <el-menu-item index="TchNotice" @click="$router.push({ name: 'TchNotice' })">
+          <el-icon>
+            <Bell />
+          </el-icon>
+          <template #title>我的通知</template>
+        </el-menu-item>
+        <el-menu-item index="TchProfile" @click="$router.push({ name: 'TchProfile' })">
+          <el-icon>
+            <User />
+          </el-icon>
+          <template #title>个人资料</template>
+        </el-menu-item>
       </el-menu>
     </div>
   </div>
@@ -38,7 +50,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { EditPen } from '@element-plus/icons-vue'
+import { EditPen, User, Bell } from '@element-plus/icons-vue'
 
 defineProps<{ collapsed: boolean }>()
 const emit = defineEmits<{ toggle: [] }>()

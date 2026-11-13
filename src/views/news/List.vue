@@ -88,9 +88,24 @@
           {{ formatTime(scope.row.createTime) }}
         </template>
       </el-table-column>
-
-      <el-table-column header-align="center" align="center" label="操作" width="288" fixed="right">
+      <el-table-column header-align="center" align="center" label="有效期至" width="170">
         <template #default="scope">
+          <template v-if="scope.row.expireTime">
+            {{ formatTime(scope.row.expireTime) }}
+            <div v-if="isExpired(scope.row.expireTime)" style="color: #f56c6c; font-size: 12px">已过期</div>
+          </template>
+          <span v-else style="color: #999">长期有效</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column header-align="center" align="center" label="操作" width="360" fixed="right">
+        <template #default="scope">
+          <el-button
+            v-if="scope.row.auditStatus === 1 && scope.row.publishStatus !== 1"
+            type="warning"
+            size="small"
+            @click="openPublish(scope.row)"
+          >发布</el-button>
           <el-button
             v-if="scope.row.auditStatus === 1 && scope.row.publishStatus === 1"
             size="small"
@@ -165,6 +180,17 @@
         <el-form-item label="封面图">
           <el-input v-model="form.coverUrl" placeholder="图片地址，选填" />
         </el-form-item>
+
+        <el-form-item label="有效期至">
+          <el-date-picker
+            v-model="form.expireTime"
+            type="datetime"
+            placeholder="留空表示长期有效"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            clearable
+            style="width: 100%"
+          />
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -173,7 +199,82 @@
       </template>
     </el-dialog>
 
-    <!-- ================= 详情弹窗 ================= -->
+    <!-- ================= 发布配置弹窗 ================= -->
+    <el-dialog v-model="publishVisible" title="发布配置" width="560px" top="8vh">
+      <el-form label-width="90px">
+        <el-form-item label="资讯">
+          <span>{{ publishForm.title }}</span>
+        </el-form-item>
+
+        <el-form-item label="发布时间">
+          <el-date-picker
+            v-model="publishForm.publishTime"
+            type="datetime"
+            placeholder="留空表示立即发布"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            clearable
+            style="width: 100%"
+          />
+          <div style="color: #909399; font-size: 12px; line-height: 1.6">
+            留空表示立即发布；填未来时间则同时创建一个定时推送任务。
+          </div>
+        </el-form-item>
+
+        <el-form-item label="目标人群">
+          <el-radio-group v-model="publishForm.targetType">
+            <el-radio :value="1">全部学生</el-radio>
+            <el-radio :value="2">按年级</el-radio>
+            <el-radio :value="3">按专业</el-radio>
+            <el-radio :value="4">按标签</el-radio>
+            <el-radio :value="5">按班级</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="publishForm.targetType === 2" label="年级">
+          <el-select v-model="publishForm.gradeValues" multiple filterable allow-create default-first-option
+                     placeholder="输入年级后回车，如 2023" style="width: 100%">
+            <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="publishForm.targetType === 3" label="专业">
+          <el-select v-model="publishForm.majorValues" multiple filterable allow-create default-first-option
+                     placeholder="输入专业后回车，如 软件工程" style="width: 100%">
+            <el-option v-for="m in majorOptions" :key="m" :label="m" :value="m" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="publishForm.targetType === 5" label="班级">
+          <el-select v-model="publishForm.classValues" multiple filterable allow-create default-first-option
+                     placeholder="输入班级后回车，如 23计算机1班" style="width: 100%">
+            <el-option v-for="c in classOptions" :key="c" :label="c" :value="c" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="publishForm.targetType === 4" label="订阅标签">
+          <el-select v-model="publishForm.tagIds" multiple placeholder="推给订阅了这些标签的学生" style="width: 100%">
+            <el-option v-for="t in tagOptions" :key="t.id" :label="t.name" :value="t.id" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="推送渠道">
+          <el-radio-group v-model="publishForm.channel">
+            <el-radio :value="1">站内信</el-radio>
+            <el-radio :value="2">微信</el-radio>
+            <el-radio :value="3">企业微信</el-radio>
+          </el-radio-group>
+          <div v-if="publishForm.channel !== 1" style="color: #e6a23c; font-size: 12px; line-height: 1.6">
+            该渠道未对接真实服务，执行时会如实记为「渠道未接入」。
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="publishVisible = false">取消</el-button>
+        <el-button type="primary" :loading="publishLoading" @click="submitPublish()">确定发布</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="detailVisible" title="资讯详情" width="680px" top="8vh">
       <el-descriptions :column="2" border v-if="detail">
         <el-descriptions-item label="标题" :span="2">{{ detail.title }}</el-descriptions-item>
@@ -222,6 +323,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { newsApi } from '@/api/news-api'
 import { categoryApi } from '@/api/category-api'
 import { tagApi } from '@/api/tag-api'
+import { studentApi } from '@/api/student-api'
 import Constants from '@/utils/constants'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -256,6 +358,25 @@ const form = reactive<any>({
   level: 1,
   coverUrl: '',
   tagNames: [],
+  expireTime: null,
+})
+
+// ---------- 发布配置 ----------
+const publishVisible = ref(false)
+const publishLoading = ref(false)
+const gradeOptions = ref<string[]>([])
+const majorOptions = ref<string[]>([])
+const classOptions = ref<string[]>([])
+const publishForm = reactive<any>({
+  id: null,
+  title: '',
+  publishTime: null,
+  targetType: 1,
+  gradeValues: [],
+  majorValues: [],
+  classValues: [],
+  tagIds: [],
+  channel: 1,
 })
 
 // ---------- 详情 ----------
@@ -298,6 +419,12 @@ function publishText(v: any) {
 }
 function publishTagType(v: any) {
   return ({ 0: 'info', 1: 'success', 2: 'danger' } as any)[v] || 'info'
+}
+
+/** 有效期是否已过（没填就是长期有效，不算过期） */
+function isExpired(v: any) {
+  if (!v) return false
+  return new Date(String(v).replace(' ', 'T')).getTime() < Date.now()
 }
 
 // ================= 数据加载 =================
@@ -380,6 +507,7 @@ function resetForm() {
   form.level = 1
   form.coverUrl = ''
   form.tagNames = []
+  form.expireTime = null
 }
 
 function add() {
@@ -401,6 +529,7 @@ async function update(row: any) {
     form.level = d.level
     form.coverUrl = d.coverUrl
     form.tagNames = d.tagNames || []
+    form.expireTime = d.expireTime || null
     dialogVisible.value = true
   } catch (err) {
     console.error(err)
@@ -432,6 +561,69 @@ async function submit() {
     console.error(err)
   } finally {
     submitLoading.value = false
+  }
+}
+
+// ================= 发布配置 =================
+/** 年级/专业/班级候选值取自学生表，避免手打出错字 */
+async function loadStudentOptions() {
+  try {
+    const res: any = await studentApi.queryPageList({}, 1, 500)
+    const list = res.data.list || []
+    gradeOptions.value = [...new Set(list.map((s: any) => s.grade).filter(Boolean))] as string[]
+    majorOptions.value = [...new Set(list.map((s: any) => s.major).filter(Boolean))] as string[]
+    classOptions.value = [...new Set(list.map((s: any) => s.className).filter(Boolean))] as string[]
+  } catch (e) {
+    gradeOptions.value = []
+    majorOptions.value = []
+    classOptions.value = []
+  }
+}
+
+function openPublish(row: any) {
+  publishForm.id = row.id
+  publishForm.title = row.title
+  publishForm.publishTime = null
+  publishForm.targetType = 1
+  publishForm.gradeValues = []
+  publishForm.majorValues = []
+  publishForm.classValues = []
+  publishForm.tagIds = []
+  publishForm.channel = 1
+  publishVisible.value = true
+}
+
+/** 把弹窗里的多选拼成后端要的逗号分隔串 */
+function publishTargetValue() {
+  if (publishForm.targetType === 2) return publishForm.gradeValues.join(',')
+  if (publishForm.targetType === 3) return publishForm.majorValues.join(',')
+  if (publishForm.targetType === 4) return publishForm.tagIds.join(',')
+  if (publishForm.targetType === 5) return publishForm.classValues.join(',')
+  return null
+}
+
+async function submitPublish() {
+  const targetValue = publishTargetValue()
+  if (publishForm.targetType !== 1 && !targetValue) {
+    ElMessage.warning('请填写目标人群取值')
+    return
+  }
+  try {
+    publishLoading.value = true
+    await newsApi.publish({
+      id: publishForm.id,
+      publishTime: publishForm.publishTime,
+      targetType: publishForm.targetType,
+      targetValue,
+      channel: publishForm.channel,
+    })
+    ElMessage.success('发布成功')
+    publishVisible.value = false
+    getList()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    publishLoading.value = false
   }
 }
 
@@ -499,6 +691,7 @@ onMounted(async () => {
   await loadCategories()
   await getList()
   loadTags()
+  loadStudentOptions()
 })
 </script>
 

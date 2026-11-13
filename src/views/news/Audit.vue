@@ -174,11 +174,14 @@
       </div>
       <template #footer>
         <el-button :disabled="auditSubmitting" @click="detailVisible = false">关闭</el-button>
+        <el-checkbox v-model="passWithoutPublish" :disabled="auditSubmitting" style="margin: 0 12px 0 4px">
+          通过后暂不发布
+        </el-checkbox>
         <el-button type="danger" plain :disabled="!detail || auditSubmitting" @click="doReject(detail)">
           驳回
         </el-button>
         <el-button type="primary" :disabled="!detail || auditSubmitting" @click="doPass(detail)">
-          通过并发布
+          {{ passWithoutPublish ? '通过（暂不发布）' : '通过并发布' }}
         </el-button>
       </template>
     </el-dialog>
@@ -310,10 +313,17 @@ function handleSelectionChange(val: any[]) {
 }
 
 // ================= 审核 =================
+/** 勾上就只置「已通过」，发布留给资讯列表的「发布」按钮去配时间/人群/渠道 */
+const passWithoutPublish = ref(false)
+
 function doPass(row: any) {
   if (auditSubmitting.value || !row) return
-  ElMessageBox.confirm(`确认通过《${row.title}》？通过后将立即发布，并触发自动推送。`, '审核通过', {
-    confirmButtonText: '确认发布',
+  const auto = !passWithoutPublish.value
+  const tip = auto
+    ? `确认通过《${row.title}》？通过后将立即发布，并触发自动推送。`
+    : `确认通过《${row.title}》？这条稿子只会标记为已通过，需要你到资讯列表点「发布」配置时间与人群。`
+  ElMessageBox.confirm(tip, auto ? '审核通过' : '审核通过（暂不发布）', {
+    confirmButtonText: auto ? '确认发布' : '确认通过',
     cancelButtonText: '取消',
     type: 'warning',
     center: true,
@@ -321,8 +331,8 @@ function doPass(row: any) {
     .then(async () => {
       auditSubmitting.value = true
       try {
-        await newsApi.audit(row.id, 1, '审核通过')
-        ElMessage.success('资讯已发布')
+        await newsApi.audit(row.id, 1, '审核通过', auto)
+        ElMessage.success(auto ? '资讯已发布' : '已通过审核，等待发布')
         detailVisible.value = false
         getList()
       } catch (err) {

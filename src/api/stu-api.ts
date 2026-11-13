@@ -72,4 +72,29 @@ export const stuApi = {
     }
     return post(url, {})
   },
+
+  /** 收藏/取消收藏，返回 { collected: boolean } */
+  toggleCollect: (newsId: any) => {
+    return post('/stu/collect/toggle?newsId=' + newsId, {})
+  },
+
+  /** 当前学生是否已收藏该资讯 */
+  collectStatus: (newsId: any) => {
+    return post('/stu/collect/status?newsId=' + newsId, {})
+  },
+
+  /** 我的收藏列表 */
+  collectList: () => {
+    return post('/stu/collect/list', {})
+  },
+
+  /** 某篇资讯的评论列表 */
+  commentList: (newsId: any) => {
+    return post('/stu/comment/list?newsId=' + newsId, {})
+  },
+
+  /** 发表评论，内容不超过 300 字 */
+  addComment: (newsId: any, content: string) => {
+    return post(`/stu/comment/add?newsId=${newsId}&content=${encodeURIComponent(content)}`, {})
+  },
 }

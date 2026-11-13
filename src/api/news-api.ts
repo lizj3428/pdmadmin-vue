@@ -39,12 +39,33 @@ export const newsApi = {
     return post('/news/detail?id=' + id, {})
   },
 
-  /** 审核资讯：auditStatus 1 通过 2 驳回 */
-  audit: (id: any, auditStatus: any, auditOpinion?: string) => {
+  /** 审核资讯：auditStatus 1 通过 2 驳回；autoPublish=false 表示通过后暂不发布 */
+  audit: (id: any, auditStatus: any, auditOpinion?: string, autoPublish?: boolean) => {
     let url = '/news/audit?id=' + id + '&auditStatus=' + auditStatus
     if (auditOpinion) {
       url += '&auditOpinion=' + encodeURIComponent(auditOpinion)
     }
+    if (autoPublish === false) {
+      url += '&autoPublish=false'
+    }
+    return post(url, {})
+  },
+
+  /** 发布资讯：publishTime 留空=立即发布；targetType 留空=只发布不推送 */
+  publish: (param: {
+    id: any
+    publishTime?: string | null
+    targetType?: number | null
+    targetValue?: string | null
+    channel?: number
+  }) => {
+    let url = '/news/publish?id=' + param.id
+    if (param.publishTime) url += '&publishTime=' + encodeURIComponent(param.publishTime)
+    if (param.targetType !== null && param.targetType !== undefined) {
+      url += '&targetType=' + param.targetType
+      if (param.targetValue) url += '&targetValue=' + encodeURIComponent(param.targetValue)
+    }
+    if (param.channel) url += '&channel=' + param.channel
     return post(url, {})
   },
 }

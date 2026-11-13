@@ -35,4 +35,32 @@ export const tchApi = {
   tags: () => {
     return post('/tch/tag/list', {})
   },
+
+  /** 本人资料 */
+  profile: () => {
+    return post('/tch/profile', {})
+  },
+
+  /** 修改本人资料，只开放姓名与联系电话 */
+  updateProfile: (realName: string, phone: string) => {
+    return post(
+      `/tch/profile/update?realName=${encodeURIComponent(realName)}&phone=${encodeURIComponent(phone)}`,
+      {},
+    )
+  },
+
+  /** 我的通知（审核结果），后端只返回发给当前教师的 */
+  noticeList: (param: any, pageNum: any, pageSize: any) => {
+    return post('/tch/notice/list?pageNum=' + pageNum + '&pageSize=' + pageSize, param)
+  },
+
+  /** 标记通知已读 */
+  noticeRead: (id: any) => {
+    return post('/tch/notice/read?id=' + id, {})
+  },
+
+  /** 未读通知数 */
+  noticeUnread: () => {
+    return post('/tch/notice/unread', {})
+  },
 }

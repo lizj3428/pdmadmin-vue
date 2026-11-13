@@ -50,6 +50,8 @@ const router = createRouter({
       children: [
         { path: '', redirect: { name: 'TchNews' } },
         { path: 'news', name: 'TchNews', component: () => import('../views/tch/NewsList.vue') },
+        { path: 'notice', name: 'TchNotice', component: () => import('../views/tch/Notice.vue') },
+        { path: 'profile', name: 'TchProfile', component: () => import('../views/tch/Profile.vue') },
       ],
     },
     // ---------- 学生端（普通学生看资讯、收消息、订阅）----------
